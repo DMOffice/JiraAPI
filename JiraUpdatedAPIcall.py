@@ -269,3 +269,72 @@ df_timetracking = get_timetracking_data_by_person_date_project_and_source(issues
 issues_data = get_issue_data(issues_from_instance)
 
 print(issues_data)
+
+import urllib.parse
+import sqlalchemy as sa
+import pandas as pd
+
+driver   = os.environ.get("SQL_DRIVER")
+server   = os.environ.get("SQL_SERVER")
+database = os.environ.get("SQL_DATABASE")
+
+odbc_str = (
+    f"DRIVER={{{driver}}};"
+    f"SERVER={server};"
+    f"DATABASE={database};"
+    "Trusted_Connection=Yes;"   # Windows auth
+    "TrustServerCertificate=Yes;"  # drop this if you have proper TLS certs
+)
+
+params = urllib.parse.quote_plus(odbc_str)
+engine = sa.create_engine(f"mssql+pyodbc:///?odbc_connect={params}", echo=False)
+
+from sqlalchemy.dialects.mssql import NVARCHAR, FLOAT, DATETIME2
+from sqlalchemy import Text
+
+dtype_mapping = {
+    "date": NVARCHAR(50),
+    "employee": Text,   # instead of NVARCHAR(MAX)
+    "project": NVARCHAR(1000),
+    "issue_key": NVARCHAR(1000),
+    "billable_type": NVARCHAR(1000),
+    "hours": FLOAT,
+    "load_time": DATETIME2
+}
+
+df_timetracking.to_sql(
+    "JiraWorklog",
+    con=engine,
+    schema="dbo",
+    if_exists="replace",
+    index=False,
+    dtype=dtype_mapping
+)
+
+from sqlalchemy.dialects.mssql import NVARCHAR, FLOAT, DATETIME2
+from sqlalchemy import Text
+
+dtype_mapping = {
+    "project": NVARCHAR(1000),
+    "creator": NVARCHAR(1000),
+    "assignee": NVARCHAR(1000),
+    "reporter": NVARCHAR(1000),
+    "work_description": NVARCHAR(1000),
+    "issue_summary": NVARCHAR(1000),
+    "issue_key": NVARCHAR(1000),
+    "issue_type": NVARCHAR(1000),
+    "issue_status": NVARCHAR(1000),
+    "issue_priority": NVARCHAR(1000),
+    "billable_type": NVARCHAR(1000),
+    "parent_key": NVARCHAR(1000),
+    "parent_summary": NVARCHAR(1000)
+}
+
+issues_data.to_sql(
+    "JiraIssuesData",
+    con=engine,
+    schema="dbo",
+    if_exists="replace",
+    index=False,
+    dtype=dtype_mapping
+)
