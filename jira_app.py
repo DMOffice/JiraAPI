@@ -227,7 +227,7 @@ def get_issue_data(issues_list):
     
     for issue in issues_list:
         fields = issue.get('fields', {})
-  
+        print(fields)
     
         try:
            work_description =  fields.get('description', {}).get('content', 'Unknown Reporter')
@@ -250,8 +250,6 @@ def get_issue_data(issues_list):
                       'billable_type':(fields.get('customfield_10421', {})or {}).get('value'),
                       'parent_key':(fields.get('parent', {})or {}).get('key'),
                       'parent_summary':((fields.get('parent', {})or {}).get('fields')or {}).get('summary'),
-                    
-          
                       'labels': fields.get('labels', []),
                       'epic_name': ((fields.get('parent', {})or {}).get('fields')or {}).get('summary')
                       }
