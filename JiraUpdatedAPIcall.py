@@ -97,12 +97,13 @@ def fetch_issues_for_instance(instance_config):
     except Exception as e:
         print(f"Error fetching projects: {e}")
         return []
-    
+
     for project in projects:
         
         
         project_key = project['key']
-    
+        
+
 
         # print(f"  - Fetching issues for project: {project_key}...")
 
@@ -119,7 +120,7 @@ def fetch_issues_for_instance(instance_config):
                     'jql': jql_query,
                     'maxResults': page_size,
                     'fields': """summary, status, issuetype, created, project, worklog, customfield_10421, labels, assignee,
-                    reporter, description, priority, timetracking, creator, parent, duedate, timeoriginalestimate, startdate""" # <-- ADDED FIELDS
+                    reporter, description, priority, timetracking, creator, parent, duedate, timeoriginalestimate, customfield_10015""" # <-- ADDED FIELDS
                 }
 
         results = jira.get(search_path, params=params)
@@ -158,7 +159,8 @@ def fetch_issues_for_instance(instance_config):
         # print(f"    -> Found {len(project_issues_batch)} issues for {project_key}.")
         all_instance_issues.extend(project_issues_batch)
         
-        
+
+
     # --- END: Manual Pagination Workaround ---
     print(len(project_issues_batch),len(set(project_issues_batch_keys)))
     print(f"\nTotal issues fetched from {jira_url}: {len(all_instance_issues)}")
@@ -232,10 +234,8 @@ def get_issue_data(issues_list):
            work_description =  fields.get('description', {}).get('content', 'Unknown Reporter')
         except:
            work_description = 'No Description'
-           
-           
 
-     
+
         blank = 'BLANK'
         value_dict = {'project':fields.get('project', {}).get('name', 'Unknown Project'),
                       'creator':fields.get('creator', {}).get('displayName', 'Unknown Creator'),
@@ -254,7 +254,7 @@ def get_issue_data(issues_list):
           
                       'labels': ' , '.join(fields.get('labels', [])),
                       'epic_name': ((fields.get('parent', {})or {}).get('fields')or {}).get('summary'),
-                      'startdate':  fields.get('startdate', None) , 
+                      'startdate':  fields.get('customfield_10015', None) , 
                       'due_date': fields.get('duedate', None) , 
                       'original_estimate_minutes':  fields.get('timeoriginalestimate', None),
                       
@@ -278,7 +278,6 @@ df_timetracking['load_time'] = load_time
 issues_data = get_issue_data(issues_from_instance)
 issues_data = pd.DataFrame(issues_data)
 issues_data['load_time'] = load_time
-
 
 
 import urllib.parse
