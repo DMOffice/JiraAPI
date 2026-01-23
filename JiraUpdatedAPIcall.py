@@ -270,9 +270,14 @@ def get_issue_data(issues_list):
 # if __name__ == "__main__":
     
     
+load_time = pd.Timestamp.now().floor("s")
 issues_from_instance = fetch_issues_for_instance(JIRA_INSTANCES)
 df_timetracking = get_timetracking_data_by_person_date_project_and_source(issues_from_instance)
+df_timetracking = df_timetracking.drop("source_url", axis = 1)
+df_timetracking['load_time'] = load_time
 issues_data = get_issue_data(issues_from_instance)
+issues_data = pd.DataFrame(issues_data)
+issues_data['load_time'] = load_time
 
 
 
@@ -333,7 +338,13 @@ dtype_mapping = {
     "issue_priority": NVARCHAR(1000),
     "billable_type": NVARCHAR(1000),
     "parent_key": NVARCHAR(1000),
-    "parent_summary": NVARCHAR(1000)
+    "parent_summary": NVARCHAR(1000),
+    "labels": NVARCHAR(1000),
+    "epic_name": NVARCHAR(1000),
+    "startdate": NVARCHAR(50),
+    "due_date": NVARCHAR(50),
+    "original_estimate_minutes": FLOAT,
+    "load_time": DATETIME2
 }
 
 issues_data.to_sql(
