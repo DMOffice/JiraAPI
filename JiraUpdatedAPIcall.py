@@ -52,6 +52,19 @@ def normalize_custom_field(value):
     return value
 
 
+def get_linked_issue_keys(issue_links):
+    """
+    Returns the keys of all issues linked to this one (any link type, either
+    direction) as a sorted, comma-separated string, or None when there are none.
+    """
+    keys = set()
+    for link in issue_links or []:
+        linked_issue = link.get("outwardIssue") or link.get("inwardIssue") or {}
+        if linked_issue.get("key"):
+            keys.add(linked_issue["key"])
+    return ", ".join(sorted(keys)) or None
+
+
 def process_issue_batch(jira, issues):
     issue_batch = []
 
@@ -136,7 +149,7 @@ def fetch_issues_for_instance(instance_config):
             "summary, status, issuetype, created, project, worklog, "
             "customfield_10421, customfield_10355, labels, assignee, "
             "reporter, description, priority, timetracking, creator, parent, "
-            "duedate, timeoriginalestimate, customfield_10015, customfield_10777"
+            "duedate, timeoriginalestimate, customfield_10015, customfield_10777, issuelinks, resolution"
         )
 
         params = {
@@ -253,6 +266,8 @@ def get_issue_data(issues_list):
             "issue_key": issue.get("key"),
             "issue_type": fields.get("issuetype", {}).get("name", {}),
             "issue_status": fields.get("status", {}).get("name", {}),
+            "status_category": ((fields.get("status") or {}).get("statusCategory") or {}).get("name"),
+            "resolution": (fields.get("resolution") or {}).get("name"),
             "issue_priority": fields.get("priority", {}).get("name"),
             "billable_type": (fields.get("customfield_10421", {}) or {}).get("value"),
             "company": (fields.get("customfield_10777", {}) or {}).get("value"),
@@ -264,6 +279,7 @@ def get_issue_data(issues_list):
             "startdate": fields.get("customfield_10015", None),
             "due_date": fields.get("duedate", None),
             "original_estimate_minutes": fields.get("timeoriginalestimate", None),
+            "linked_issue_keys": get_linked_issue_keys(fields.get("issuelinks")),
         }
 
         val = value_dict.get("original_estimate_minutes")
@@ -333,6 +349,8 @@ issues_dtype_mapping = {
     "issue_key": NVARCHAR(1000),
     "issue_type": NVARCHAR(1000),
     "issue_status": NVARCHAR(1000),
+    "status_category": NVARCHAR(1000),
+    "resolution": NVARCHAR(1000),
     "issue_priority": NVARCHAR(1000),
     "billable_type": NVARCHAR(1000),
     "company": NVARCHAR(1000),
@@ -344,6 +362,7 @@ issues_dtype_mapping = {
     "startdate": NVARCHAR(50),
     "due_date": NVARCHAR(50),
     "original_estimate_minutes": FLOAT,
+    "linked_issue_keys": NVARCHAR(4000),
     "load_time": DATETIME2
 }
 
