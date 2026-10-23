@@ -65,6 +65,33 @@ def get_linked_issue_keys(issue_links):
     return ", ".join(sorted(keys)) or None
 
 
+def get_sprint_data(sprints):
+    """
+    Returns the issue's current sprint (the active one, else the one that started
+    last) plus the names of every sprint the issue has been in, oldest first.
+    Dates are returned as YYYY-MM-DD strings; all values are None without sprints.
+    """
+    sprints = [s for s in sprints or [] if isinstance(s, dict)]
+    if not sprints:
+        return {"sprint_name": None, "sprint_state": None, "sprint_start": None,
+                "sprint_end": None, "sprint_names": None}
+
+    def start_of(sprint):
+        return sprint.get("startDate") or ""
+
+    ordered = sorted(sprints, key=lambda s: (start_of(s), s.get("id") or 0))
+    active = [s for s in ordered if s.get("state") == "active"]
+    current = active[-1] if active else ordered[-1]
+
+    return {
+        "sprint_name": current.get("name"),
+        "sprint_state": current.get("state"),
+        "sprint_start": (current.get("startDate") or "")[:10] or None,
+        "sprint_end": (current.get("endDate") or "")[:10] or None,
+        "sprint_names": ", ".join(s.get("name") or "" for s in ordered),
+    }
+
+
 def process_issue_batch(jira, issues):
     issue_batch = []
 
@@ -149,7 +176,8 @@ def fetch_issues_for_instance(instance_config):
             "summary, status, issuetype, created, project, worklog, "
             "customfield_10421, customfield_10355, labels, assignee, "
             "reporter, description, priority, timetracking, creator, parent, "
-            "duedate, timeoriginalestimate, customfield_10015, customfield_10777, issuelinks, resolution"
+            "duedate, timeoriginalestimate, customfield_10015, customfield_10777, issuelinks, resolution, "
+            "customfield_10020"
         )
 
         params = {
@@ -280,6 +308,7 @@ def get_issue_data(issues_list):
             "due_date": fields.get("duedate", None),
             "original_estimate_minutes": fields.get("timeoriginalestimate", None),
             "linked_issue_keys": get_linked_issue_keys(fields.get("issuelinks")),
+            **get_sprint_data(fields.get("customfield_10020")),
         }
 
         val = value_dict.get("original_estimate_minutes")
@@ -363,6 +392,11 @@ issues_dtype_mapping = {
     "due_date": NVARCHAR(50),
     "original_estimate_minutes": FLOAT,
     "linked_issue_keys": NVARCHAR(4000),
+    "sprint_name": NVARCHAR(1000),
+    "sprint_state": NVARCHAR(50),
+    "sprint_start": NVARCHAR(50),
+    "sprint_end": NVARCHAR(50),
+    "sprint_names": NVARCHAR(4000),
     "load_time": DATETIME2
 }
 
