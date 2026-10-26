@@ -106,7 +106,11 @@ def process_issue_batch(jira, issues):
             fetched_count = len(all_worklogs)
 
             if total_worklogs > fetched_count:
-                worklog_start_at = fetched_count
+                # The search embeds the first 20 worklogs sorted by start date, but the
+                # worklog endpoint pages them in creation order. Continuing from item 21
+                # would skip backdated worklogs, so fetch the full list from the start.
+                all_worklogs = []
+                worklog_start_at = 0
                 worklog_page_size = 50
 
                 while worklog_start_at < total_worklogs:
@@ -123,6 +127,7 @@ def process_issue_batch(jira, issues):
 
                     all_worklogs.extend(new_worklogs)
                     worklog_start_at += len(new_worklogs)
+                    total_worklogs = worklog_results.get("total", total_worklogs)
 
             issue["fields"]["worklog"]["worklogs"] = all_worklogs
             issue["fields"]["worklog"]["total"] = len(all_worklogs)
